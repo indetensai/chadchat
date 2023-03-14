@@ -1,6 +1,8 @@
 package entities
 
 import (
+	"context"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -17,10 +19,14 @@ type ChatRoom struct {
 	Name    string
 }
 
+type ChatRepository interface {
+	CreateRoom(ctx context.Context, name string) (*uuid.UUID, error)
+}
+
 type ChatService interface {
-	CreateChatRoom(name string) (*uuid.UUID, error)
+	CreateRoom(ctx context.Context, name string) (*uuid.UUID, error)
 }
 
 type ChatHandler interface {
-	CreateChatRoomHandler(c *fiber.Ctx) error
+	CreateRoomHandler(c *fiber.Ctx) error
 }

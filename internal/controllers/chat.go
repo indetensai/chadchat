@@ -12,13 +12,13 @@ type chatServiceHandler struct {
 
 func NewChatServiceHandler(app *fiber.App, c entities.ChatService) entities.ChatHandler {
 	handler := &chatServiceHandler{ChatService: c}
-	app.Post("/chatroom", handler.CreateChatRoomHandler)
+	app.Post("/chatroom", handler.CreateRoomHandler)
 	return handler
 }
 
-func (chat *chatServiceHandler) CreateChatRoomHandler(c *fiber.Ctx) error {
+func (chat *chatServiceHandler) CreateRoomHandler(c *fiber.Ctx) error {
 	name := c.FormValue("room_name")
-	id, err := chat.ChatService.CreateChatRoom(name)
+	id, err := chat.ChatService.CreateRoom(c.Context(), name)
 	if err != nil {
 		return fiber.ErrInternalServerError //error handling must be here
 	}
