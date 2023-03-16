@@ -5,7 +5,10 @@ import (
 	"chat/internal/usecases"
 	"chat/internal/usecases/repository"
 	"context"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 
@@ -47,10 +50,27 @@ func Run() {
 	if err := client.Ping(); err != nil {
 		log.Fatal("redis kaput")
 	}*/
+	privateKeyFile, err := os.Open("private.pem")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer privateKeyFile.Close()
 
+	privateKeyBytes, err := ioutil.ReadAll(privateKeyFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	privateKeyPEM, _ := pem.Decode(privateKeyBytes)
+	privatekey, err := x509.ParsePKCS1PrivateKey(privateKeyPEM.Bytes)
+	if err != nil {
+		log.Fatal(err)
+	}
 	app := fiber.New()
-	chat_repository := repository.NewChatRepository(pgx_con)
+
+	chat_repository := repository.NewChatRepository(pgx_con, privatekey)
 	chat_service := usecases.NewChatService(rabbit_con, chat_repository)
 	controllers.NewChatServiceHandler(app, chat_service)
+
 	app.Listen(":8080")
 }

@@ -21,12 +21,18 @@ type ChatRoom struct {
 
 type ChatRepository interface {
 	CreateRoom(ctx context.Context, name string) (*uuid.UUID, error)
+	Register(ctx context.Context, username string, password string) error
+	Login(ctx context.Context, username string, password string) (*string, *string, error)
 }
 
 type ChatService interface {
 	CreateRoom(ctx context.Context, name string) (*uuid.UUID, error)
+	Register(ctx context.Context, username string, password string) error
+	Login(ctx context.Context, username string, password string) (*string, *string, error)
 }
 
 type ChatHandler interface {
 	CreateRoomHandler(c *fiber.Ctx) error
+	RegisterHandler(c *fiber.Ctx) error
+	LoginHandler(c *fiber.Ctx) error
 }

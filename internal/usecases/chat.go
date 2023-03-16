@@ -30,3 +30,23 @@ func (c *chatService) CreateRoom(ctx context.Context, name string) (*uuid.UUID, 
 	c.channels[*id] = entities.ChatRoom{Name: name, Channel: ch}
 	return id, nil
 }
+
+func (c *chatService) Register(
+	ctx context.Context,
+	username string,
+	password string,
+) error {
+	return c.repo.Register(ctx, username, password)
+}
+
+func (c *chatService) Login(
+	ctx context.Context,
+	username string,
+	password string,
+) (*string, *string, error) {
+	access_token, refresh_token, err := c.repo.Login(ctx, username, password)
+	if err != nil {
+		return nil, nil, err
+	}
+	return access_token, refresh_token, nil
+}
