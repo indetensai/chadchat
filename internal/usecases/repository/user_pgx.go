@@ -7,12 +7,11 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt"
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
-type ChatRepository struct {
+type userRepository struct {
 	db  *pgx.Conn
 	key *rsa.PrivateKey
 }
@@ -22,11 +21,11 @@ type JWTData struct {
 	CustomClaims map[string]string
 }
 
-func NewChatRepository(db *pgx.Conn, key *rsa.PrivateKey) entities.ChatRepository {
-	return &ChatRepository{db: db, key: key}
+func NewUserRepository(db *pgx.Conn, key *rsa.PrivateKey) entities.UserRepository {
+	return &userRepository{db: db, key: key}
 }
 
-func (c *ChatRepository) GenerateJWTAccessToken(user_id string, username string) (*string, error) {
+func (u *userRepository) GenerateJWTAccessToken(user_id string, username string) (*string, error) {
 	claims := JWTData{
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(time.Duration(36000)).Unix(),
@@ -37,14 +36,14 @@ func (c *ChatRepository) GenerateJWTAccessToken(user_id string, username string)
 		},
 	}
 	tokenString := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-	token, err := tokenString.SignedString(c.key)
+	token, err := tokenString.SignedString(u.key)
 	if err != nil {
 		return nil, err
 	}
 	return &token, err
 }
 
-func (c *ChatRepository) GenerateJWTRefreshToken(user_id string, username string) (*string, error) {
+func (u *userRepository) GenerateJWTRefreshToken(user_id string, username string) (*string, error) {
 	claims := JWTData{
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(time.Duration(2419200)).Unix(),
@@ -55,32 +54,18 @@ func (c *ChatRepository) GenerateJWTRefreshToken(user_id string, username string
 		},
 	}
 	tokenString := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-	token, err := tokenString.SignedString(c.key)
+	token, err := tokenString.SignedString(u.key)
 	if err != nil {
 		return nil, err
 	}
 	return &token, err
 }
-
-func (c *ChatRepository) CreateRoom(ctx context.Context, name string) (*uuid.UUID, error) {
-	var id uuid.UUID
-	err := c.db.QueryRow(
-		ctx,
-		"INSERT INTO rooms (room_name) VALUES ($1) RETURNING room_id",
-		name,
-	).Scan(&id)
-	if err != nil {
-		return nil, err
-	}
-	return &id, nil
-}
-
-func (c *ChatRepository) Register(
+func (u *userRepository) Register(
 	ctx context.Context,
 	username string,
 	password string,
 ) error {
-	tx, err := c.db.Begin(ctx)
+	tx, err := u.db.Begin(ctx)
 	if err != nil {
 		return err
 	}
@@ -117,12 +102,12 @@ func (c *ChatRepository) Register(
 	}
 }
 
-func (c *ChatRepository) Login(
+func (u *userRepository) Login(
 	ctx context.Context,
 	username string,
 	password string,
 ) (*string, *string, error) {
-	tx, err := c.db.Begin(ctx)
+	tx, err := u.db.Begin(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -140,11 +125,11 @@ func (c *ChatRepository) Login(
 	if err != nil {
 		return nil, nil, entities.ErrInvalidCredentials
 	}
-	access_token, err := c.GenerateJWTAccessToken(result.ID.String(), result.Username)
+	access_token, err := u.GenerateJWTAccessToken(result.ID.String(), result.Username)
 	if err != nil {
 		return nil, nil, err
 	}
-	refresh_token, err := c.GenerateJWTRefreshToken(result.ID.String(), result.Username)
+	refresh_token, err := u.GenerateJWTRefreshToken(result.ID.String(), result.Username)
 
 	if err != nil {
 		return nil, nil, err
