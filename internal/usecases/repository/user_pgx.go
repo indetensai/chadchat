@@ -12,31 +12,35 @@ import (
 )
 
 type userRepository struct {
-	db  *pgx.Conn
-	key *rsa.PrivateKey
+	db          *pgx.Conn
+	access_key  *rsa.PrivateKey
+	refresh_key *rsa.PrivateKey
 }
 
-type JWTData struct {
+type Claims struct {
 	jwt.StandardClaims
-	CustomClaims map[string]string
+	UserID   string
+	Username string
 }
 
-func NewUserRepository(db *pgx.Conn, key *rsa.PrivateKey) entities.UserRepository {
-	return &userRepository{db: db, key: key}
+func NewUserRepository(
+	db *pgx.Conn,
+	access_key *rsa.PrivateKey,
+	refresh_key *rsa.PrivateKey,
+) entities.UserRepository {
+	return &userRepository{db: db, access_key: access_key, refresh_key: refresh_key}
 }
 
 func (u *userRepository) GenerateJWTAccessToken(user_id string, username string) (*string, error) {
-	claims := JWTData{
+	claims := Claims{
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(time.Hour).Unix(),
 		},
-		CustomClaims: map[string]string{
-			"user_id":  user_id,
-			"username": username,
-		},
+		UserID:   user_id,
+		Username: username,
 	}
 	tokenString := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-	token, err := tokenString.SignedString(u.key)
+	token, err := tokenString.SignedString(u.access_key)
 	if err != nil {
 		return nil, err
 	}
@@ -44,17 +48,15 @@ func (u *userRepository) GenerateJWTAccessToken(user_id string, username string)
 }
 
 func (u *userRepository) GenerateJWTRefreshToken(user_id string, username string) (*string, error) {
-	claims := JWTData{
+	claims := Claims{
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(time.Hour * 24 * 28).Unix(),
 		},
-		CustomClaims: map[string]string{
-			"user_id":  user_id,
-			"username": username,
-		},
+		UserID:   user_id,
+		Username: username,
 	}
 	tokenString := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-	token, err := tokenString.SignedString(u.key)
+	token, err := tokenString.SignedString(u.refresh_key)
 	if err != nil {
 		return nil, err
 	}
@@ -142,11 +144,11 @@ func (u *userRepository) Login(
 }
 
 func (u *userRepository) Validation(tokenstring string) (*jwt.Token, error) {
-	token, err := jwt.Parse(tokenstring, func(t *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenstring, &Claims{}, func(t *jwt.Token) (interface{}, error) {
 		if _, check := t.Method.(*jwt.SigningMethodRSA); !check {
 			return nil, entities.ErrInvalidCredentials
 		}
-		return &u.key.PublicKey, nil
+		return &u.access_key.PublicKey, nil
 	})
 	if err != nil {
 		return nil, err
@@ -155,5 +157,34 @@ func (u *userRepository) Validation(tokenstring string) (*jwt.Token, error) {
 		return token, nil
 	} else {
 		return nil, err
+	}
+}
+
+func (u *userRepository) Refresh(tokenstring string) (*string, *string, error) {
+	token, err := jwt.ParseWithClaims(tokenstring, &Claims{}, func(t *jwt.Token) (interface{}, error) {
+		if _, check := t.Method.(*jwt.SigningMethodRSA); !check {
+			return nil, entities.ErrInvalidCredentials
+		}
+		return &u.refresh_key.PublicKey, nil
+	})
+	if err != nil {
+		return nil, nil, entities.ErrInvalidCredentials
+	}
+	if token.Valid {
+		claims, ok := token.Claims.(*Claims)
+		if !ok {
+			return nil, nil, entities.ErrInvalidCredentials
+		}
+		access_token, err := u.GenerateJWTAccessToken(claims.UserID, claims.Username)
+		if err != nil {
+			return nil, nil, err
+		}
+		refresh_token, err := u.GenerateJWTRefreshToken(claims.UserID, claims.Username)
+		if err != nil {
+			return nil, nil, err
+		}
+		return access_token, refresh_token, nil
+	} else {
+		return nil, nil, err
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"chat/internal/usecases"
 	"chat/internal/usecases/repository"
 	"context"
+	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
@@ -21,6 +22,26 @@ import (
 	"github.com/joho/godotenv"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
+
+func get_private_key(filename string) *rsa.PrivateKey {
+	privateKeyFile, err := os.Open(filename)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer privateKeyFile.Close()
+
+	privateKeyBytes, err := ioutil.ReadAll(privateKeyFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	privateKeyPEM, _ := pem.Decode(privateKeyBytes)
+	privatekey, err := x509.ParsePKCS1PrivateKey(privateKeyPEM.Bytes)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return privatekey
+}
 
 func Run() {
 	godotenv.Load(".env")
@@ -51,25 +72,13 @@ func Run() {
 	if err := client.Ping(); err != nil {
 		log.Fatal("redis kaput")
 	}*/
-	privateKeyFile, err := os.Open("private.pem")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer privateKeyFile.Close()
-
-	privateKeyBytes, err := ioutil.ReadAll(privateKeyFile)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	privateKeyPEM, _ := pem.Decode(privateKeyBytes)
-	privatekey, err := x509.ParsePKCS1PrivateKey(privateKeyPEM.Bytes)
-	if err != nil {
-		log.Fatal(err)
-	}
 	app := fiber.New()
 
-	user_repository := repository.NewUserRepository(pgx_con, privatekey)
+	user_repository := repository.NewUserRepository(
+		pgx_con,
+		get_private_key("access_private.pem"),
+		get_private_key("refresh_private.pem"),
+	)
 	user_service := usecases.NewUserService(user_repository)
 	controllers.NewUserServiceHandler(app, user_service)
 

@@ -35,6 +35,9 @@ func (u *userService) Login(
 }
 
 func (u *userService) Validation(tokenstring string) (*jwt.Token, error) {
-	token, err := u.repo.Validation(tokenstring)
-	return token, err
+	return u.repo.Validation(tokenstring)
+}
+
+func (u *userService) Refresh(tokenstring string) (*string, *string, error) {
+	return u.repo.Refresh(tokenstring)
 }

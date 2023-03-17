@@ -18,15 +18,18 @@ type UserRepository interface {
 	Register(ctx context.Context, username string, password string) error
 	Login(ctx context.Context, username string, password string) (*string, *string, error)
 	Validation(tokenstring string) (*jwt.Token, error)
+	Refresh(tokenstring string) (*string, *string, error)
 }
 
 type UserService interface {
 	Register(ctx context.Context, username string, password string) error
 	Login(ctx context.Context, username string, password string) (*string, *string, error)
 	Validation(tokenstring string) (*jwt.Token, error)
+	Refresh(tokenstring string) (*string, *string, error)
 }
 
 type UserHandler interface {
 	RegisterHandler(c *fiber.Ctx) error
 	LoginHandler(c *fiber.Ctx) error
+	RefreshHandler(c *fiber.Ctx) error
 }
