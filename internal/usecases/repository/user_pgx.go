@@ -143,7 +143,7 @@ func (u *userRepository) Login(
 	return access_token, refresh_token, nil
 }
 
-func (u *userRepository) Validation(tokenstring string) (*jwt.Token, error) {
+func (u *userRepository) Validation(tokenstring string) (*string, *string, error) {
 	token, err := jwt.ParseWithClaims(tokenstring, &Claims{}, func(t *jwt.Token) (interface{}, error) {
 		if _, check := t.Method.(*jwt.SigningMethodRSA); !check {
 			return nil, entities.ErrInvalidCredentials
@@ -151,12 +151,16 @@ func (u *userRepository) Validation(tokenstring string) (*jwt.Token, error) {
 		return &u.access_key.PublicKey, nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if token.Valid {
-		return token, nil
+		claims, ok := token.Claims.(*Claims)
+		if !ok {
+			return nil, nil, entities.ErrInvalidCredentials
+		}
+		return &claims.UserID, &claims.Username, nil
 	} else {
-		return nil, err
+		return nil, nil, err
 	}
 }
 

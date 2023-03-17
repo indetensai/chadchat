@@ -13,11 +13,12 @@ func New(repo entities.UserRepository) fiber.Handler {
 			c.Locals("token", nil)
 			return c.Next()
 		}
-		token, err := repo.Validation(tokenstring)
+		user_id, username, err := repo.Validation(tokenstring)
 		if err != nil {
 			return c.Status(fiber.StatusUnauthorized).SendString("invalid token")
 		}
-		c.Locals("token", token)
+		c.Locals("user_id", user_id)
+		c.Locals("username", username)
 		return c.Next()
 	}
 }
