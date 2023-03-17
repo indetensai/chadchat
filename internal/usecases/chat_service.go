@@ -14,8 +14,15 @@ type chatService struct {
 	channels map[uuid.UUID]entities.ChatRoom
 }
 
-func NewChatService(rabbit_con *amqp.Connection, repo entities.ChatRepository) entities.ChatService {
-	return &chatService{rabbit: rabbit_con, channels: make(map[uuid.UUID]entities.ChatRoom), repo: repo}
+func NewChatService(
+	rabbit_con *amqp.Connection,
+	repo entities.ChatRepository,
+) entities.ChatService {
+	return &chatService{
+		rabbit:   rabbit_con,
+		channels: make(map[uuid.UUID]entities.ChatRoom),
+		repo:     repo,
+	}
 }
 
 func (c *chatService) CreateRoom(ctx context.Context, name string) (*uuid.UUID, error) {

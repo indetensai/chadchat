@@ -3,6 +3,8 @@ package usecases
 import (
 	"chat/internal/entities"
 	"context"
+
+	"github.com/golang-jwt/jwt"
 )
 
 type userService struct {
@@ -30,4 +32,9 @@ func (u *userService) Login(
 		return nil, nil, err
 	}
 	return access_token, refresh_token, nil
+}
+
+func (u *userService) Validation(tokenstring string) (*jwt.Token, error) {
+	token, err := u.repo.Validation(tokenstring)
+	return token, err
 }
