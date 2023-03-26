@@ -3,7 +3,6 @@ package entities
 import (
 	"context"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 )
 
@@ -13,22 +12,21 @@ type User struct {
 	Password string
 }
 
+type TokenCredentials struct {
+	UserID   string
+	Username string
+}
+
 type UserRepository interface {
 	Register(ctx context.Context, username string, password string) error
 	Login(ctx context.Context, username string, password string) (*string, *string, error)
-	Validation(tokenstring string) (*string, *string, error)
+	Validation(tokenstring string) (*TokenCredentials, error)
 	Refresh(tokenstring string) (*string, *string, error)
 }
 
 type UserService interface {
 	Register(ctx context.Context, username string, password string) error
 	Login(ctx context.Context, username string, password string) (*string, *string, error)
-	Validation(tokenstring string) (*string, *string, error)
+	Validation(tokenstring string) (*TokenCredentials, error)
 	Refresh(tokenstring string) (*string, *string, error)
-}
-
-type UserHandler interface {
-	RegisterHandler(c *fiber.Ctx) error
-	LoginHandler(c *fiber.Ctx) error
-	RefreshHandler(c *fiber.Ctx) error
 }

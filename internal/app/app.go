@@ -3,8 +3,8 @@ package app
 import (
 	"chat/internal/controllers"
 	"chat/internal/controllers/auth"
+	"chat/internal/repository"
 	"chat/internal/usecases"
-	"chat/internal/usecases/repository"
 	"context"
 	"crypto/rsa"
 	"crypto/x509"
@@ -20,7 +20,6 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jackc/pgx/v5"
 	"github.com/joho/godotenv"
-	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 func get_private_key(filename string) *rsa.PrivateKey {
@@ -59,11 +58,6 @@ func Run() {
 	if err = pgx_con.Ping(context.Background()); err != nil {
 		log.Fatal("baza kaput")
 	}
-	rabbit_con, err := amqp.Dial(os.Getenv("RABBIT_URL"))
-	if err != nil {
-		log.Fatal("rabbit kaput")
-	}
-	defer rabbit_con.Close()
 	/*client := redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379",
 		Password: "",
@@ -85,7 +79,7 @@ func Run() {
 	app.Use(auth.New(user_repository))
 
 	chat_repository := repository.NewChatRepository(pgx_con)
-	chat_service := usecases.NewChatService(rabbit_con, chat_repository)
+	chat_service := usecases.NewChatService(chat_repository)
 	controllers.NewChatServiceHandler(app, chat_service)
 
 	app.Listen(":8080")

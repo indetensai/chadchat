@@ -32,7 +32,7 @@ func (u *userService) Login(
 	return access_token, refresh_token, nil
 }
 
-func (u *userService) Validation(tokenstring string) (*string, *string, error) {
+func (u *userService) Validation(tokenstring string) (*entities.TokenCredentials, error) {
 	return u.repo.Validation(tokenstring)
 }
 

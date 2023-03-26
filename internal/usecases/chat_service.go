@@ -5,35 +5,38 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 type chatService struct {
-	repo     entities.ChatRepository
-	rabbit   *amqp.Connection
-	channels map[uuid.UUID]entities.ChatRoom
+	repo entities.ChatRepository
 }
 
-func NewChatService(
-	rabbit_con *amqp.Connection,
-	repo entities.ChatRepository,
-) entities.ChatService {
+func NewChatService(repo entities.ChatRepository) entities.ChatService {
 	return &chatService{
-		rabbit:   rabbit_con,
-		channels: make(map[uuid.UUID]entities.ChatRoom),
-		repo:     repo,
+		repo: repo,
 	}
 }
 
 func (c *chatService) CreateRoom(ctx context.Context, name string) (*uuid.UUID, error) {
-	ch, err := c.rabbit.Channel()
-	if err != nil {
-		return nil, err
-	}
 	id, err := c.repo.CreateRoom(ctx, name)
 	if err != nil {
 		return nil, err
 	}
-	c.channels[*id] = entities.ChatRoom{Name: name, Channel: ch}
+
 	return id, nil
+}
+
+func (c *chatService) WriteMessage(ctx context.Context, message entities.WriteMessageInput) error {
+	return c.repo.WriteMessage(ctx, message)
+}
+
+func (c *chatService) CheckRoom(ctx context.Context, room_id uuid.UUID) error {
+	return c.repo.CheckRoom(ctx, room_id)
+}
+
+func (c *chatService) GetHistory(
+	ctx context.Context,
+	content entities.GetHistoryInput,
+) (*[]entities.GetHistoryOutput, error) {
+	return c.repo.GetHistory(ctx, content)
 }
