@@ -6,7 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func error_handling(c *fiber.Ctx, err error) error {
+func errorHandling(c *fiber.Ctx, err error) error {
 	switch err {
 	case entities.ErrDuplicate:
 		return c.SendStatus(fiber.StatusConflict)

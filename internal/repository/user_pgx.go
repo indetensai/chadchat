@@ -4,9 +4,12 @@ import (
 	"chat/internal/entities"
 	"context"
 	"crypto/rsa"
+	"errors"
 	"time"
 
 	"github.com/golang-jwt/jwt"
+	"github.com/jackc/pgconn"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -67,41 +70,25 @@ func (u *userRepository) Register(
 	username string,
 	password string,
 ) error {
-	tx, err := u.db.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback(ctx)
 	password_raw := []byte(password)
 	password_hashed, err := bcrypt.GenerateFromPassword(password_raw, 10)
 	if err != nil {
 		return err
 	}
-	var exists bool
-	err = tx.QueryRow(
+	_, err = u.db.Exec(
 		ctx,
-		"SELECT EXISTS(SELECT 1 FROM users WHERE username=$1)",
+		"INSERT INTO users (username,password) VALUES ($1,$2)",
 		username,
-	).Scan(&exists)
+		string(password_hashed),
+	)
 	if err != nil {
-		return entities.ErrNotFound
-	}
-	if exists || (username == "" || password == "") {
-		return entities.ErrDuplicate
-
-	} else {
-		_, err := tx.Exec(
-			ctx,
-			"INSERT INTO users (username,password) VALUES ($1,$2)",
-			username,
-			string(password_hashed),
-		)
-		if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgerrcode.UniqueViolation == pgErr.Code {
 			return entities.ErrDuplicate
 		}
-		tx.Commit(ctx)
-		return nil
+		return err
 	}
+	return nil
 }
 
 func (u *userRepository) Login(

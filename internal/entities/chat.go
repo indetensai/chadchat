@@ -16,35 +16,35 @@ type WriteMessageInput struct {
 }
 
 type GetHistoryInput struct {
-	Time   int64     `json:"time"`
-	Limit  int64     `json:"limit"`
-	Offset int64     `json:"offset"`
-	RoomID uuid.UUID `json:"room_id"`
+	Time   int64
+	Limit  int64
+	Offset int64
+	RoomID uuid.UUID
 }
 
-type GetHistoryOutput struct {
+type ChatHistory struct {
 	Content   string
 	CreatedAt time.Time
 	Username  string
 }
 
 type ChatMessage struct {
-	Username string
-	Content  string
-	SentAt   string
-	RoomID   uuid.UUID
+	Username string    `json:"username"`
+	Content  string    `json:"content"`
+	SentAt   time.Time `json:"sent_at"`
+	RoomID   uuid.UUID `json:"room_id"`
 }
 
 type ChatRepository interface {
 	CreateRoom(ctx context.Context, name string) (*uuid.UUID, error)
 	CheckRoom(ctx context.Context, room_name uuid.UUID) error
 	WriteMessage(ctx context.Context, message WriteMessageInput) error
-	GetHistory(ctx context.Context, content GetHistoryInput) (*[]GetHistoryOutput, error)
+	GetHistory(ctx context.Context, content GetHistoryInput) (*[]ChatHistory, error)
 }
 
 type ChatService interface {
 	CreateRoom(ctx context.Context, name string) (*uuid.UUID, error)
 	CheckRoom(ctx context.Context, room_name uuid.UUID) error
 	WriteMessage(ctx context.Context, message WriteMessageInput) error
-	GetHistory(ctx context.Context, content GetHistoryInput) (*[]GetHistoryOutput, error)
+	GetHistory(ctx context.Context, content GetHistoryInput) (*[]ChatHistory, error)
 }

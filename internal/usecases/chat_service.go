@@ -37,6 +37,6 @@ func (c *chatService) CheckRoom(ctx context.Context, room_id uuid.UUID) error {
 func (c *chatService) GetHistory(
 	ctx context.Context,
 	content entities.GetHistoryInput,
-) (*[]entities.GetHistoryOutput, error) {
+) (*[]entities.ChatHistory, error) {
 	return c.repo.GetHistory(ctx, content)
 }

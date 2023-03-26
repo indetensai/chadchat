@@ -22,7 +22,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func get_private_key(filename string) *rsa.PrivateKey {
+func getPrivateKey(filename string) *rsa.PrivateKey {
 	privateKeyFile, err := os.Open(filename)
 	if err != nil {
 		log.Fatal(err)
@@ -70,8 +70,8 @@ func Run() {
 
 	user_repository := repository.NewUserRepository(
 		pgx_con,
-		get_private_key("access_private.pem"),
-		get_private_key("refresh_private.pem"),
+		getPrivateKey("access_private.pem"),
+		getPrivateKey("refresh_private.pem"),
 	)
 	user_service := usecases.NewUserService(user_repository)
 	controllers.NewUserServiceHandler(app, user_service)

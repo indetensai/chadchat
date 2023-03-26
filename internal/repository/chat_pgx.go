@@ -3,9 +3,12 @@ package repository
 import (
 	"chat/internal/entities"
 	"context"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgconn"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -25,7 +28,11 @@ func (c *chatRepository) CreateRoom(ctx context.Context, name string) (*uuid.UUI
 		name,
 	).Scan(&id)
 	if err != nil {
-		return nil, entities.ErrDuplicate
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgerrcode.UniqueViolation == pgErr.Code {
+			return nil, entities.ErrDuplicate
+		}
+		return nil, err
 	}
 	return &id, nil
 }
@@ -61,10 +68,10 @@ func (c *chatRepository) CheckRoom(ctx context.Context, room_id uuid.UUID) error
 func (c *chatRepository) GetHistory(
 	ctx context.Context,
 	content entities.GetHistoryInput,
-) (*[]entities.GetHistoryOutput, error) {
+) (*[]entities.ChatHistory, error) {
 	rows, err := c.db.Query(
 		ctx,
-		"SELECT (content,sent_at,username) FROM messages WHERE sent_at<=$1 AND room_id=$2 ORDER BY sent_at LIMIT $3 OFFSET $4",
+		"SELECT (content,sent_at,username) FROM messages WHERE sent_at<=$1 AND room_id=$2 ORDER BY sent_at DESC LIMIT $3 OFFSET $4",
 		time.Unix(content.Time, 0),
 		content.RoomID,
 		content.Limit,
@@ -74,9 +81,9 @@ func (c *chatRepository) GetHistory(
 		return nil, err
 	}
 	defer rows.Close()
-	var history []entities.GetHistoryOutput
+	var history []entities.ChatHistory
 	for rows.Next() {
-		var r entities.GetHistoryOutput
+		var r entities.ChatHistory
 		err = rows.Scan(&r)
 		if err != nil {
 			return nil, err

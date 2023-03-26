@@ -3,6 +3,7 @@ package controllers
 import (
 	"chat/internal/entities"
 	"context"
+	"encoding/json"
 	"log"
 	"strconv"
 	"sync"
@@ -57,10 +58,9 @@ func (chat *chatServiceHandler) RunHub() {
 		select {
 		case connection := <-chat.register:
 			chat.listeners[connection.RoomID][connection.Connection] = &chatUser{}
-			log.Println("connection registered")
 
 		case message := <-chat.broadcast:
-			log.Println("message received:", message)
+			encodedMessage, _ := json.Marshal(message)
 			for connection, c := range chat.listeners[message.RoomID] {
 				go func(connection *websocket.Conn, c *chatUser) {
 					c.mu.Lock()
@@ -70,11 +70,9 @@ func (chat *chatServiceHandler) RunHub() {
 					}
 					if err := connection.WriteMessage(
 						websocket.TextMessage,
-						[]byte(message.Username+": "+message.Content),
+						encodedMessage,
 					); err != nil {
 						c.isClosing = true
-						log.Println("write error:", err)
-
 						connection.WriteMessage(websocket.CloseMessage, []byte{})
 						connection.Close()
 						chat.unregister <- roomConnection{
@@ -88,7 +86,6 @@ func (chat *chatServiceHandler) RunHub() {
 		case connection := <-chat.unregister:
 			delete(chat.listeners[connection.RoomID], connection.Connection)
 
-			log.Println("connection unregistered")
 		}
 	}
 }
@@ -97,7 +94,7 @@ func (chat *chatServiceHandler) CreateRoomHandler(c *fiber.Ctx) error {
 	name := c.FormValue("room_name")
 	id, err := chat.ChatService.CreateRoom(c.Context(), name)
 	if err != nil {
-		return error_handling(c, err)
+		return errorHandling(c, err)
 	}
 	chat.listeners[*id] = make(map[*websocket.Conn]*chatUser)
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"chatroom_id": id})
@@ -145,16 +142,17 @@ func (chat *chatServiceHandler) GetWebsocketConnection(c *websocket.Conn) {
 		}
 
 		if messageType == websocket.TextMessage {
+			currentTime := time.Now()
 			chat.broadcast <- entities.ChatMessage{
 				Content:  string(message),
 				Username: username,
-				SentAt:   time.Now().Format("15:04:05"),
+				SentAt:   currentTime,
 				RoomID:   room_id,
 			}
 			err = chat.ChatService.WriteMessage(context.Background(), entities.WriteMessageInput{
 				Content:   string(message),
 				UserID:    user_id,
-				CreatedAt: time.Now(),
+				CreatedAt: currentTime,
 				RoomID:    room_id,
 				Username:  username,
 			})
@@ -182,7 +180,7 @@ func (chat *chatServiceHandler) GetHistory(c *fiber.Ctx) error {
 		Offset: offset,
 	})
 	if err != nil {
-		error_handling(c, err)
+		errorHandling(c, err)
 	}
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"history": history})
 }
