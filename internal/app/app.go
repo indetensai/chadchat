@@ -14,6 +14,7 @@ import (
 	"os"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/skip"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -48,7 +49,7 @@ func Run() {
 		log.Fatal("failed to read migration ", err)
 	}
 	if err := m.Up(); err != nil {
-		log.Fatal("warn - migration failed: ", err)
+		log.Print("warn - migration failed: ", err)
 	}
 	pgx_con, err := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
 	if err != nil {
@@ -67,7 +68,9 @@ func Run() {
 	user_service := usecases.NewUserService(user_repository)
 	controllers.NewUserServiceHandler(app, user_service)
 
-	app.Use(auth.New(user_repository))
+	app.Use(skip.New(auth.New(user_repository), func(c *fiber.Ctx) bool {
+		return c.Path() == "/chat/rooms"
+	}))
 
 	chat_repository := repository.NewChatRepository(pgx_con)
 	chat_service := usecases.NewChatService(chat_repository)

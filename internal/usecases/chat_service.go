@@ -40,3 +40,7 @@ func (c *chatService) GetHistory(
 ) (*[]entities.ChatHistory, error) {
 	return c.repo.GetHistory(ctx, content)
 }
+
+func (c *chatService) GetRooms(ctx context.Context) (*[]entities.ChatRoom, error) {
+	return c.repo.GetRooms(ctx)
+}

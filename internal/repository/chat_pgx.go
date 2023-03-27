@@ -92,3 +92,21 @@ func (c *chatRepository) GetHistory(
 	}
 	return &history, nil
 }
+
+func (c *chatRepository) GetRooms(ctx context.Context) (*[]entities.ChatRoom, error) {
+	rows, err := c.db.Query(ctx, "SELECT (room_name,room_id) FROM rooms")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var rooms []entities.ChatRoom
+	for rows.Next() {
+		var r entities.ChatRoom
+		err = rows.Scan(&r)
+		if err != nil {
+			return nil, err
+		}
+		rooms = append(rooms, r)
+	}
+	return &rooms, nil
+}

@@ -40,7 +40,7 @@ func NewChatServiceHandler(app *fiber.App, c entities.ChatService) {
 		broadcast:   make(chan entities.ChatMessage),
 		unregister:  make(chan roomConnection),
 	}
-	app.Post("/chatroom", handler.CreateRoomHandler)
+	app.Post("/chat/room", handler.CreateRoomHandler)
 	go handler.RunHub()
 	app.Use("/ws", func(c *fiber.Ctx) error {
 		if websocket.IsWebSocketUpgrade(c) {
@@ -50,7 +50,8 @@ func NewChatServiceHandler(app *fiber.App, c entities.ChatService) {
 		return fiber.ErrUpgradeRequired
 	})
 	app.Get("/ws/:room_id<guid>", websocket.New(handler.GetWebsocketConnection))
-	app.Get("/chat/:room_id<guid>/history", handler.GetHistory)
+	app.Get("/chat/room/:room_id<guid>/history", handler.GetHistory)
+	app.Get("/chat/rooms", handler.GetRooms)
 }
 
 func (chat *chatServiceHandler) RunHub() {
@@ -183,4 +184,12 @@ func (chat *chatServiceHandler) GetHistory(c *fiber.Ctx) error {
 		errorHandling(c, err)
 	}
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"history": history})
+}
+
+func (chat *chatServiceHandler) GetRooms(c *fiber.Ctx) error {
+	rooms, err := chat.ChatService.GetRooms(c.Context())
+	if err != nil {
+		errorHandling(c, err)
+	}
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"rooms": rooms})
 }

@@ -22,6 +22,11 @@ type GetHistoryInput struct {
 	RoomID uuid.UUID
 }
 
+type ChatRoom struct {
+	Name   string
+	RoomID uuid.UUID
+}
+
 type ChatHistory struct {
 	Content   string
 	CreatedAt time.Time
@@ -40,6 +45,7 @@ type ChatRepository interface {
 	CheckRoom(ctx context.Context, room_name uuid.UUID) error
 	WriteMessage(ctx context.Context, message WriteMessageInput) error
 	GetHistory(ctx context.Context, content GetHistoryInput) (*[]ChatHistory, error)
+	GetRooms(ctx context.Context) (*[]ChatRoom, error)
 }
 
 type ChatService interface {
@@ -47,4 +53,5 @@ type ChatService interface {
 	CheckRoom(ctx context.Context, room_name uuid.UUID) error
 	WriteMessage(ctx context.Context, message WriteMessageInput) error
 	GetHistory(ctx context.Context, content GetHistoryInput) (*[]ChatHistory, error)
+	GetRooms(ctx context.Context) (*[]ChatRoom, error)
 }
