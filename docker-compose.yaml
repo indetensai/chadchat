@@ -1,0 +1,36 @@
+version: '3.9'
+
+services:
+
+  db:
+    image: postgres
+    restart: always
+    networks:
+      - chadchat_net
+    environment:
+      POSTGRES_PASSWORD: cocodzhamba
+      POSTGRES_DB: chadchat
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    networks:
+      - chadchat_net
+    ports:
+      - '8080:8080'
+    environment:
+      DATABASE_URL: "postgres://postgres:cocodzhamba@db:5432/chadchat?sslmode=disable"
+    depends_on:
+      db:
+        condition: service_healthy
+
+networks:
+  chadchat_net:
+    driver: bridge
+  

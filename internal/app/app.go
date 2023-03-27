@@ -9,7 +9,6 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -44,28 +43,20 @@ func getPrivateKey(filename string) *rsa.PrivateKey {
 
 func Run() {
 	godotenv.Load(".env")
-	m, err := migrate.New("file://../migrations", os.Getenv("DATABASE_URL"))
+	m, err := migrate.New("file://migrations", os.Getenv("DATABASE_URL"))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("failed to read migration ", err)
 	}
 	if err := m.Up(); err != nil {
-		fmt.Print(err)
+		log.Fatal("warn - migration failed: ", err)
 	}
 	pgx_con, err := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
 	if err != nil {
-		log.Fatal("baza kaput")
+		log.Fatal("failed to connect to database: ", err)
 	}
 	if err = pgx_con.Ping(context.Background()); err != nil {
-		log.Fatal("baza kaput")
+		log.Print("warn - database isn't respodning to ping: ", err)
 	}
-	/*client := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "",
-		DB:       0,
-	})
-	if err := client.Ping(); err != nil {
-		log.Fatal("redis kaput")
-	}*/
 	app := fiber.New()
 
 	user_repository := repository.NewUserRepository(
