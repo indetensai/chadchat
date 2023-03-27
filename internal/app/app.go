@@ -15,43 +15,33 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/skip"
-	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jackc/pgx/v5"
-	"github.com/joho/godotenv"
 )
 
 func getPrivateKey(filename string) *rsa.PrivateKey {
 	privateKeyFile, err := os.Open(filename)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("failed to open private key file: `", filename, "` ", err)
 	}
 	defer privateKeyFile.Close()
 
 	privateKeyBytes, err := ioutil.ReadAll(privateKeyFile)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("failed to read private key file: `", filename, "` ", err)
 	}
 
 	privateKeyPEM, _ := pem.Decode(privateKeyBytes)
 	privatekey, err := x509.ParsePKCS1PrivateKey(privateKeyPEM.Bytes)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("failed to parse private key file: `", filename, "` ", err)
 	}
 	return privatekey
 }
 
-func Run() {
-	godotenv.Load(".env")
-	m, err := migrate.New("file://migrations", os.Getenv("DATABASE_URL"))
-	if err != nil {
-		log.Fatal("failed to read migration ", err)
-	}
-	if err := m.Up(); err != nil {
-		log.Print("warn - migration failed: ", err)
-	}
-	pgx_con, err := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
+func Run(databaseURL string, port string) {
+	pgx_con, err := pgx.Connect(context.Background(), databaseURL)
 	if err != nil {
 		log.Fatal("failed to connect to database: ", err)
 	}
@@ -76,5 +66,5 @@ func Run() {
 	chat_service := usecases.NewChatService(chat_repository)
 	controllers.NewChatServiceHandler(app, chat_service)
 
-	app.Listen(":8080")
+	app.Listen(":" + port)
 }

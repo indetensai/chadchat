@@ -19,7 +19,17 @@ func NewUserServiceHandler(app *fiber.App, u entities.UserService) {
 
 func (u *userServiceHandler) RegisterHandler(c *fiber.Ctx) error {
 	username := c.FormValue("username")
+	if username == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"note": "invalid username",
+		})
+	}
 	password := c.FormValue("password")
+	if password == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"note": "invalid password",
+		})
+	}
 	err := u.UserService.Register(c.Context(), username, password)
 	if err != nil {
 		return errorHandling(c, err)

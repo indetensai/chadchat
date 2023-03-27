@@ -1,17 +1,18 @@
-FROM golang:alpine AS BUILDER
-WORKDIR /usr/src/app
-COPY go.mod ./
-COPY go.sum ./
-RUN go mod download
-COPY cmd/ ./cmd
-COPY internal/ ./internal
-WORKDIR /usr/src/app/cmd
-RUN go build -o ./
+FROM golang:alpine AS builder
+WORKDIR /usr/src/chadchat
+COPY go.mod go.sum cmd/main.go cmd/generate-keys.sh ./
+COPY internal ./internal/
+RUN go mod download &&\
+    go build -o ./server
+COPY cmd/*.pem ./
+RUN apk add openssl &&\
+    chmod +x /usr/src/chadchat/generate-keys.sh &&\
+    ./generate-keys.sh
 
-FROM alpine:latest 
-RUN apk --no-cache add ca-certificates
-WORKDIR /usr/src/app
+FROM alpine:latest AS runner
+WORKDIR /usr/bin/chadchat
 EXPOSE 8080
-COPY cmd/migrations/ ./migrations
-COPY --from=BUILDER /usr/src/app/cmd/ ./
-ENTRYPOINT [ "./cmd" ]
+COPY cmd/migrations ./migrations/
+COPY --from=builder /usr/src/chadchat/server /usr/src/chadchat/*.pem ./
+RUN apk --no-cache add ca-certificates
+ENTRYPOINT [ "/usr/bin/chadchat/server" ]
