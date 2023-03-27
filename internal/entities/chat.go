@@ -42,16 +42,16 @@ type ChatMessage struct {
 
 type ChatRepository interface {
 	CreateRoom(ctx context.Context, name string) (*uuid.UUID, error)
-	CheckRoom(ctx context.Context, room_name uuid.UUID) error
-	WriteMessage(ctx context.Context, message WriteMessageInput) error
-	GetHistory(ctx context.Context, content GetHistoryInput) (*[]ChatHistory, error)
-	GetRooms(ctx context.Context) (*[]ChatRoom, error)
+	GetRoomByID(ctx context.Context, room_id uuid.UUID) (*ChatRoom, error)
+	CreateMessage(ctx context.Context, message WriteMessageInput) error
+	GetHistory(ctx context.Context, content GetHistoryInput) ([]ChatHistory, error)
+	GetRooms(ctx context.Context) ([]ChatRoom, error)
 }
 
 type ChatService interface {
 	CreateRoom(ctx context.Context, name string) (*uuid.UUID, error)
 	CheckRoom(ctx context.Context, room_name uuid.UUID) error
 	WriteMessage(ctx context.Context, message WriteMessageInput) error
-	GetHistory(ctx context.Context, content GetHistoryInput) (*[]ChatHistory, error)
-	GetRooms(ctx context.Context) (*[]ChatRoom, error)
+	GetHistory(ctx context.Context, content GetHistoryInput) ([]ChatHistory, error)
+	GetRooms(ctx context.Context) ([]ChatRoom, error)
 }

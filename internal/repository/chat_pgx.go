@@ -37,7 +37,7 @@ func (c *chatRepository) CreateRoom(ctx context.Context, name string) (*uuid.UUI
 	return &id, nil
 }
 
-func (c *chatRepository) WriteMessage(
+func (c *chatRepository) CreateMessage(
 	ctx context.Context,
 	message entities.WriteMessageInput,
 ) error {
@@ -53,22 +53,23 @@ func (c *chatRepository) WriteMessage(
 	return err
 }
 
-func (c *chatRepository) CheckRoom(ctx context.Context, room_id uuid.UUID) error {
-	_, err := c.db.Exec(
+func (c *chatRepository) GetRoomByID(ctx context.Context, room_id uuid.UUID) (*entities.ChatRoom, error) {
+	var room entities.ChatRoom
+	err := c.db.QueryRow(
 		ctx,
 		"SELECT room_name FROM rooms WHERE room_id=$1",
 		room_id,
-	)
+	).Scan(&room)
 	if err != nil {
-		return entities.ErrNotFound
+		return nil, entities.ErrNotFound
 	}
-	return nil
+	return &room, nil
 }
 
 func (c *chatRepository) GetHistory(
 	ctx context.Context,
 	content entities.GetHistoryInput,
-) (*[]entities.ChatHistory, error) {
+) ([]entities.ChatHistory, error) {
 	rows, err := c.db.Query(
 		ctx,
 		"SELECT (content,sent_at,username) FROM messages WHERE sent_at<=$1 AND room_id=$2 ORDER BY sent_at DESC LIMIT $3 OFFSET $4",
@@ -90,10 +91,10 @@ func (c *chatRepository) GetHistory(
 		}
 		history = append(history, r)
 	}
-	return &history, nil
+	return history, nil
 }
 
-func (c *chatRepository) GetRooms(ctx context.Context) (*[]entities.ChatRoom, error) {
+func (c *chatRepository) GetRooms(ctx context.Context) ([]entities.ChatRoom, error) {
 	rows, err := c.db.Query(ctx, "SELECT (room_name,room_id) FROM rooms")
 	if err != nil {
 		return nil, err
@@ -108,5 +109,5 @@ func (c *chatRepository) GetRooms(ctx context.Context) (*[]entities.ChatRoom, er
 		}
 		rooms = append(rooms, r)
 	}
-	return &rooms, nil
+	return rooms, nil
 }
