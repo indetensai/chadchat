@@ -50,21 +50,21 @@ func Run(databaseURL string, port string) {
 	}
 	app := fiber.New()
 
-	user_repository := repository.NewUserRepository(
-		pgx_con,
+	userRepository := repository.NewUserRepository(pgx_con)
+	userService := usecases.NewUserService(
+		userRepository,
 		getPrivateKey("access_private.pem"),
 		getPrivateKey("refresh_private.pem"),
 	)
-	user_service := usecases.NewUserService(user_repository)
-	controllers.NewUserServiceHandler(app, user_service)
+	controllers.NewUserServiceHandler(app, userService)
 
-	app.Use(skip.New(auth.New(user_repository), func(c *fiber.Ctx) bool {
+	app.Use(skip.New(auth.New(userService), func(c *fiber.Ctx) bool {
 		return c.Path() == "/chat/rooms"
 	}))
 
-	chat_repository := repository.NewChatRepository(pgx_con)
-	chat_service := usecases.NewChatService(chat_repository)
-	controllers.NewChatServiceHandler(app, chat_service)
+	chatRepository := repository.NewChatRepository(pgx_con)
+	chatService := usecases.NewChatService(chatRepository)
+	controllers.NewChatServiceHandler(app, chatService)
 
 	app.Listen(":" + port)
 }

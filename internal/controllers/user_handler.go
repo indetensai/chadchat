@@ -40,24 +40,24 @@ func (u *userServiceHandler) RegisterHandler(c *fiber.Ctx) error {
 func (u *userServiceHandler) LoginHandler(c *fiber.Ctx) error {
 	username := c.FormValue("username")
 	password := c.FormValue("password")
-	access_token, refresh_token, err := u.UserService.Login(c.Context(), username, password)
+	tokens, err := u.UserService.Login(c.Context(), username, password)
 	if err != nil {
 		return errorHandling(c, err)
 	}
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"access_token":  access_token,
-		"refresh_token": refresh_token,
+		"access_token":  tokens.AccessToken,
+		"refresh_token": tokens.RefreshToken,
 	})
 }
 
 func (u *userServiceHandler) RefreshHandler(c *fiber.Ctx) error {
 	tokenstring := c.Get("Authorization")[7:]
-	access_token, refresh_token, err := u.UserService.Refresh(tokenstring)
+	tokens, err := u.UserService.Refresh(tokenstring)
 	if err != nil {
 		return errorHandling(c, err)
 	}
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"access_token":  access_token,
-		"refresh_token": refresh_token,
+		"access_token":  tokens.AccessToken,
+		"refresh_token": tokens.RefreshToken,
 	})
 }

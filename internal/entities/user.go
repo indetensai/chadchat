@@ -17,16 +17,20 @@ type TokenCredentials struct {
 	Username string
 }
 
+type Tokens struct {
+	AccessToken  string
+	RefreshToken string
+}
+
 type UserRepository interface {
-	Register(ctx context.Context, username string, password string) error
-	Login(ctx context.Context, username string, password string) (*string, *string, error)
-	Validation(tokenstring string) (*TokenCredentials, error)
-	Refresh(tokenstring string) (*string, *string, error)
+	CreateUser(ctx context.Context, username string, password string) error
+	GetUserByUsername(ctx context.Context, username string) (*User, error)
+	// GetUserByID(ctx context.Context, userID uuid.UUID) (*User, error)
 }
 
 type UserService interface {
 	Register(ctx context.Context, username string, password string) error
-	Login(ctx context.Context, username string, password string) (*string, *string, error)
+	Login(ctx context.Context, username string, password string) (*Tokens, error)
 	Validation(tokenstring string) (*TokenCredentials, error)
-	Refresh(tokenstring string) (*string, *string, error)
+	Refresh(tokenstring string) (*Tokens, error)
 }
